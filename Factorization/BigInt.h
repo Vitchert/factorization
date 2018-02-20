@@ -50,3 +50,10 @@ public:
 
 	bool operator <= (const BigInt &b) const;
 };
+
+BigInt pow(const BigInt &a, const int &N);
+BigInt pow(BigInt aa, BigInt kk);
+BigInt powmod(BigInt aa, BigInt kk, BigInt nn);
+BigInt sqrt(BigInt n);
+BigInt Nuton(BigInt n);
+BigInt Nod(BigInt a, BigInt b);

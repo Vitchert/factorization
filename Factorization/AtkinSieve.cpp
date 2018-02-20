@@ -1,39 +1,68 @@
-﻿
+﻿#include <cstdint>
+#include <vector>
+#include <set>
+#include <algorithm>
+using namespace std;
+class Atkin {
+private:
+	vector<bool> is_prime;	
+public:
+	vector<int> primes = { 2,3,5 };
 
-limit ← 1000000000        // arbitrary search limit
+	Atkin(uint64_t limit) {
+		int sqr_lim;
+		is_prime.resize(limit + 1, false);
+		int x2, y2;
+		int i, j;
+		int n;
+		// Инициализация решета
+			sqr_lim = (int)sqrt((long double)limit);
+		for (i = 0; i <= limit; i++) is_prime[i] = false;
+		is_prime[2] = true;
+		is_prime[3] = true;
 
-						  // set of wheel "hit" positions for a 2/3/5 wheel rolled twice as per the Atkin algorithm
-	s ←{ 1,7,11,13,17,19,23,29, 31,37,41,43,47,49,53,59 }
+		// Предположительно простые — это целые с нечётным числом
+		// представлений в данных квадратных формах.
+		// x2 и y2 — это квадраты i и j (оптимизация).
+		x2 = 0;
+		for (i = 1; i <= sqr_lim; i++) {
+			x2 += 2 * i - 1;
+			y2 = 0;
+			for (j = 1; j <= sqr_lim; j++) {
+				y2 += 2 * j - 1;
 
-	// Initialize the sieve with enough wheels to include limit:
-	for n ← 60 × w + x where w ∈{ 0,1,...,limit ÷ 60 }, x ∈ s :
-is_prime(n) ← false
+				n = 4 * x2 + y2;
+				if ((n <= limit) && (n % 12 == 1 || n % 12 == 5))
+					is_prime[n] = !is_prime[n];
 
-// Put in candidate primes:
-//   integers which have an odd number of
-//   representations by certain quadratic forms.
-// Algorithm step 3.1:
-for n ≤ limit, n ← 4x² + y² where x ∈{ 1,2,... } and y ∈{ 1,3,... } // all x's odd y's
-if n mod 60 ∈{ 1,13,17,29,37,41,49,53 }:
-is_prime(n) ← ¬is_prime(n)   // toggle state
-							 // Algorithm step 3.2:
-	for n ≤ limit, n ← 3x² + y² where x ∈{ 1,3,... } and y ∈{ 2,4,... } // only odd x's
-		if n mod 60 ∈{ 7,19,31,43 } :                                 // and even y's
-			is_prime(n) ← ¬is_prime(n)   // toggle state
-										 // Algorithm step 3.3:
-			for n ≤ limit, n ← 3x² - y² where x ∈{ 2,3,... } and y ∈{ x - 1,x - 3,...,1 } //all even/odd
-				if n mod 60 ∈{ 11,23,47,59 } :                                   // odd/even combos
-					is_prime(n) ← ¬is_prime(n)   // toggle state
+				// n = 3 * x2 + y2; 
+				n -= x2; // Оптимизация
+				if ((n <= limit) && (n % 12 == 7))
+					is_prime[n] = !is_prime[n];
 
-												 // Eliminate composites by sieving, only for those occurrences on the wheel:
-					for n² ≤ limit, n ← 60 × w + x where w ∈{ 0,1,... }, x ∈ s, n ≥ 7 :
-						if is_prime(n) :
-							// n is prime, omit multiples of its square; this is sufficient 
-							// because square-free composites can't get on this list
-							for c ≤ limit, c ← n² ×(60 × w + x) where w ∈{ 0,1,... }, x ∈ s :
-is_prime(c) ← false
+				// n = 3 * x2 - y2;
+				n -= 2 * y2; // Оптимизация
+				if ((i > j) && (n <= limit) && (n % 12 == 11))
+					is_prime[n] = !is_prime[n];
+			}
+		}
 
-// one sweep to produce a sequential list of primes up to limit:
-output 2, 3, 5
-for 7 ≤ n ≤ limit, n ← 60 × w + x where w ∈{ 0,1,... }, x ∈ s :
-if is_prime(n) : output n
+		// Отсеиваем кратные квадратам простых чисел в интервале [5, sqrt(limit)].
+		// (основной этап не может их отсеять)
+		for (i = 5; i <= sqr_lim; i++) {
+			if (is_prime[i]) {
+				n = i * i;
+				for (j = n; j <= limit; j += n) {
+					is_prime[j] = false;
+				}
+			}
+		}
+
+		// Вывод списка простых чисел в консоль.
+		for (i = 6; i <= limit; i++) {  // добавлена проверка делимости на 3 и 5. В оригинальной версии алгоритма потребности в ней нет.
+			if ((is_prime[i]) && (i % 3 != 0) && (i % 5 != 0)) {
+				primes.push_back(i);
+			}
+		}
+	}
+};

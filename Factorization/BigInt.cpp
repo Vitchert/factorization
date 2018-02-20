@@ -387,3 +387,113 @@ bool BigInt::operator <= (const BigInt &b) const
 	return true;
 
 }
+
+BigInt pow(const BigInt &a, const int &N)
+{
+	BigInt res = 1, cur = a;
+	int n = N;
+	if (n == 0) return 1;
+	while (n)
+	{
+		if (n & 1)
+			res = res * cur;
+		cur = cur * cur;
+		n >>= 1;
+	}
+	return res;
+}
+
+BigInt pow(BigInt aa, BigInt kk)
+{
+	BigInt res = 1, a = aa, k = kk;
+
+	while (k != 0) {
+		if (k % 2 == 0) {
+			k = k / 2;
+			a = a * a;
+		}
+		else {
+			k = k - 1;
+			res = res * a;
+		}
+	}
+	return res;
+}
+
+BigInt powmod(BigInt aa, BigInt kk, BigInt nn)
+{
+	BigInt res = 1, a = aa, k = kk, n = nn;
+
+	while (k != 0) {
+		if (k % 2 == 0) {
+			k = k / 2;
+			a = (a*a) % n;
+		}
+		else {
+			k = k - 1;
+			res = (res*a) % n;
+		}
+	}
+	return res;
+}
+
+BigInt sqrt(BigInt n)
+{
+	BigInt cur;
+	int nsize = n.digits.size();
+	int pos = (nsize + 1) / 2;
+	pos--;
+	for (int i = 0; i <= pos; i++)
+		cur.digits.push_back(0);
+	while (pos >= 0)
+	{
+		int l = 0, r = BigInt::osn;
+		int curDigit = 0;
+		while (l <= r) // подбираем текущую цифру
+		{
+			int m = (l + r) >> 1;
+			cur.digits[pos] = m;
+			if ((cur * cur) <= n)
+			{
+				curDigit = m;
+				l = m + 1;
+			}
+			else
+				r = m - 1;
+		}
+		cur.digits[pos] = curDigit;
+		pos--;
+	}
+	// избавляемся от лидирующих нулей
+	if (cur.digits.size() != 1 && !cur.digits[cur.digits.size() - 1])
+		cur.digits.pop_back();
+	return cur;
+}
+
+BigInt Nuton(BigInt n)
+{
+	BigInt  A = n;
+	BigInt x1, x2, razn;
+	x1 = n / 2;
+	x2 = (x1 + A / x1) / 2;
+	razn = x1 - x2;
+	while (razn > 1)
+	{
+		x1 = x2;
+		x2 = (x1 + A / x1) / 2;
+		razn = x1 - x2;
+	}
+	return x2;
+}
+
+BigInt Nod(BigInt a, BigInt b)
+{
+	if ((a.digits.size() == 0) || (b.digits.size() == 0)) return 0;
+
+	while (b != 0) {
+		a = a % b;
+		swap(a, b);
+	}
+	return a;
+
+}
