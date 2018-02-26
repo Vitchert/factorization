@@ -2,19 +2,19 @@
 #include <string>
 #include <algorithm>
 #include <vector>
-#include "BigInt.h"
 #include "AtkinSieve.cpp"
 #include <map>
 #include <set>
+#include <mpirxx.h>
+#include <cstdint>
+#include <mpfr.h>
 using namespace std;
 
-
-
-int mil_rab(BigInt n) // 1-prostoe
+int mil_rab(mpz_class n) // 1-prostoe
 {
 
-	int k, s = 0, buf = 0;;
-	BigInt t, tt, a, x, i;
+	mpz_class k, s = 0, buf = 0;;
+	mpz_class t, tt, a, x, i;
 	k = 10; //к-во итераций
 
 	if (n <= 3)
@@ -29,17 +29,19 @@ int mil_rab(BigInt n) // 1-prostoe
 		s++;
 	}
 
-	for (int i = 0; i < k; i++)
+	for (mpz_class i = 0; i < k; i++)
 	{
 		a = rand();
 		a = a % (n - 2) + 2; //случайное число из [2,n-1]
 
-		x = powmod(a, t, n);
+		//x = powmod(a, t, n);
+		mpz_powm(x.get_mpz_t(), a.get_mpz_t(), t.get_mpz_t(), n.get_mpz_t());
 		if ((x == 1) || (x == n - 1)) continue;
-		for (int j = 1; j < s; j++)
+		for (mpz_class j = 1; j < s; j++)
 		{
 			//x = pow(x, 2) % n;
-			x = powmod(x, 2, n);
+			//x = powmod(x, 2, n);
+			mpz_powm(x.get_mpz_t(), x.get_mpz_t(), mpz_class(2).get_mpz_t(), n.get_mpz_t());
 			if (x == 1)
 			{
 				return 0;
@@ -54,19 +56,20 @@ int mil_rab(BigInt n) // 1-prostoe
 	return 1;
 }
 
-
-
-int Miller(BigInt n)
+int Miller(mpz_class n)
 {
-	BigInt f = sqrt(sqrt(sqrt(n))) * 2;
-	BigInt a = 2;
-	BigInt buf;
+	mpz_class f = sqrt(sqrt(sqrt(n))) * 2;
+	mpz_class a = 2;
+	mpz_class buf;
 	bool fl = false;
-	int v, k = 0;
+	mpz_class v, k = 0;
 	for (a; a <= f; a = a + 1)
 	{
 		if (n%a == 0) return 0;
-		if (powmod(a, n - 1, n) != 1) return 0;
+		mpz_class temp;
+		mpz_powm(temp.get_mpz_t(), a.get_mpz_t(), mpz_class(n - 1).get_mpz_t(), n.get_mpz_t());
+		if (temp != 1) return 0;
+		
 		buf = 2;
 		k = 0;
 		while (buf < n)
@@ -77,11 +80,16 @@ int Miller(BigInt n)
 		}
 		for (k = 1; k <= v; k++)
 		{
-			buf = powmod(a, (n - 1) / pow((BigInt)2, k), n);
+			//buf = powmod(a, (n - 1) / pow((int)2, k), n);
+			mpz_class power;
+			mpz_pow_ui(power.get_mpz_t(), mpz_class(2).get_mpz_t(), k.get_ui());
+			power = (n - 1) / power;
+			mpz_powm(buf.get_mpz_t(), a.get_mpz_t(), power.get_mpz_t(), n.get_mpz_t());
 			if (buf == 0) buf = n - 1;
 			else buf = buf - 1;
-			//buf = (pow(a, ((n - 1) / pow((BigInt)2, k))) - 1)%n;
-			buf = Nod(buf, n);
+
+			//buf = Nod(buf, n);
+			mpz_gcd(buf.get_mpz_t(), buf.get_mpz_t(), n.get_mpz_t());
 			if ((buf > 1) && (buf < n))
 			{
 				fl = true;
@@ -93,53 +101,38 @@ int Miller(BigInt n)
 	return 1;
 }
 
-
-
-
-
-int powmod(int base, int power, int mod)
-{
-	int res = 1, a = base, k = power, n = mod;
-
-	while (k != 0) {
-		if (k % 2 == 0) {
-			k = k / 2;
-			a = (a*a) % n;
-		}
-		else {
-			k = k - 1;
-			res = (res*a) % n;
-		}
-	}
-	return res;
-}
-
-int LegendreSymbol(int a, int p) {
+mpz_class LegendreSymbol(mpz_class a, mpz_class p) {
 	if (a >= p)
 		a %= p;
-	int res =  powmod(a, (p - 1) / 2, p);
+	mpz_class res;// = powmod(a, (p - 1) / 2, p);
+	mpz_powm(res.get_mpz_t(), a.get_mpz_t(), mpz_class((p-1)/2).get_mpz_t(), p.get_mpz_t());
 	return res > 1 ? -1 : res;
 }
 
-int SqrtMod(int a, int p) {
+mpz_class SqrtMod(mpz_class a, mpz_class p) {
 	if (a >= p)
 		a %= p;
-	int n = 1;
+	mpz_class n = 1;
 	while (LegendreSymbol(n, p) >= 0) {
 		++n;
 	}
-	int alpha = 0;
-	int s = p - 1;
+	mpz_class alpha = 0;
+	mpz_class s = p - 1;
 	while (s % 2 == 0) {
 		++alpha;
 		s /= 2;
 	}
-	int b = powmod(n, s, p);
-	int r = powmod(a, (s + 1) / 2, p);
-	int rCalc = powmod(a, s, p);
-	int j;
-	//int check = powmod((r*r) / a, pow(2, alpha - 2), p);
-	int check = powmod(rCalc, pow(2, alpha - 2), p);
+	mpz_class b;// = powmod(n, s, p);
+	mpz_powm(b.get_mpz_t(), n.get_mpz_t(), s.get_mpz_t(), p.get_mpz_t());
+	mpz_class r;// = powmod(a, (s + 1) / 2, p);
+	mpz_powm(r.get_mpz_t(), a.get_mpz_t(), mpz_class((s + 1) / 2).get_mpz_t(), p.get_mpz_t());
+	mpz_class rCalc;// = powmod(a, s, p);
+	mpz_powm(rCalc.get_mpz_t(), a.get_mpz_t(), s.get_mpz_t(), p.get_mpz_t());
+	mpz_class j;	
+	mpz_class power;
+	mpz_pow_ui(power.get_mpz_t(), mpz_class(2).get_mpz_t(), mpz_class(alpha - 2).get_ui());
+	mpz_class check;// = powmod(rCalc, pow(2, alpha - 2), p);
+	mpz_powm(check.get_mpz_t(), rCalc.get_mpz_t(), power.get_mpz_t(), p.get_mpz_t());
 	if (check > 1)
 		check -= p;
 	if (check == 1) {
@@ -150,9 +143,14 @@ int SqrtMod(int a, int p) {
 		}
 		else
 			cout << "check error" << endl;
-	for (int i = 1; i < alpha - 1; ++i) {
-		//check = powmod(pow((pow(b, j)*r), 2) / a, pow(2, alpha - i - 2), p);
-		check = powmod(powmod(powmod(b, j, p), 2, p) * rCalc, pow(2, alpha - i - 2), p);
+	for (mpz_class i = 1; i < alpha - 1; ++i) {
+		//check = powmod(powmod(powmod(b, j, p), 2, p) * rCalc, pow(2, alpha - i - 2), p);
+		mpz_class base, exp;
+		mpz_pow_ui(exp.get_mpz_t(), mpz_class(2).get_mpz_t(), mpz_class(alpha - i - 2).get_ui());
+		mpz_powm(base.get_mpz_t(), b.get_mpz_t(), j.get_mpz_t(), p.get_mpz_t());
+		mpz_powm(base.get_mpz_t(), base.get_mpz_t(), mpz_class(2).get_mpz_t(), p.get_mpz_t());
+		base = base * rCalc;
+		mpz_powm(check.get_mpz_t(), base.get_mpz_t(), exp.get_mpz_t(), p.get_mpz_t());
 		if (check > 1)
 			check -= p;
 		if (check == 1) {
@@ -160,49 +158,54 @@ int SqrtMod(int a, int p) {
 		}
 		else
 			if (check == -1) {
-				j += pow(2, i);
+				mpz_class addition;
+				mpz_pow_ui(addition.get_mpz_t(), mpz_class(2).get_mpz_t(), i.get_ui());
+				//j += pow(2, i);
+				j += addition;
 			}
 			else
-				cout << "check error" << endl;
+				std::cout << "check error" << endl;
 	}
-	return (powmod(b, j, p) * r) % p;
+	mpz_class result;
+	mpz_powm(result.get_mpz_t(), b.get_mpz_t(), j.get_mpz_t(), p.get_mpz_t());
+	//return (powmod(b, j, p) * r) % p;
+	return (result * r) % p;
 }
 
-
-int gcd(int a, int b) {
-	while (b) {
+mpz_class gcd(mpz_class a, mpz_class b) {
+	while (b != 0) {
 		a %= b;
 		swap(a, b);
 	}
 	return a;
 }
 
-int gcdex(int a, int b, int & x, int & y) {//Расширенный алгоритм евклида emaxx
+mpz_class gcdex(mpz_class a, mpz_class b, mpz_class & x, mpz_class & y) {//Расширенный алгоритм евклида emaxx
 	if (a == 0) {
 		x = 0; y = 1;
 		return b;
 	}
-	int x1, y1;
-	int d = gcdex(b%a, a, x1, y1);
+	mpz_class x1, y1;
+	mpz_class d = gcdex(b%a, a, x1, y1);
 	x = y1 - (b / a) * x1;
 	y = x1;
 	return d;
 }
 
-int ReverseMod(int a, int m) {//обратное по модулю число
-	int x = 0, y;
-	int g = gcdex(a, m, x, y);
+mpz_class ReverseMod(mpz_class a, mpz_class m) {//обратное по модулю число
+	mpz_class x = 0, y;
+	mpz_class g = gcdex(a, m, x, y);
 	if (g != 1)
-		cout << "ReverseMod no solution";
+		std::cout << "ReverseMod no solution";
 	else {
 		x = (x % m + m) % m;
 	}
 	return x;
 }
 
-int sqrtModPowerLiftingPlusOne(int root, int quadResidue, int mod, int modBase) {
-	int newmod = mod*modBase;
-	int yk = ReverseMod(2 * root, mod)% newmod;	
+mpz_class sqrtModPowerLiftingPlusOne(mpz_class root, mpz_class quadResidue, mpz_class mod, mpz_class modBase) {
+	mpz_class newmod = mod*modBase;
+	mpz_class yk = ReverseMod(2 * root, mod)% newmod;	
 	quadResidue %= newmod;
 	root = root - (((root*root) % newmod - quadResidue)*yk) % newmod;
 
@@ -213,9 +216,9 @@ int sqrtModPowerLiftingPlusOne(int root, int quadResidue, int mod, int modBase) 
 	//root = min(root, -(root - newmod));
 	return root;
 }
-
-int primeCheck() {
-	BigInt n;
+/*
+mpz_class primeCheck() {
+	mpz_class n;
 	//string str = argv[2];
 	string str = "18014398241046523";
 	n.input(str);
@@ -237,13 +240,13 @@ int primeCheck() {
 			return 1;
 		}
 }
-
-bool chekNuberInRange(int lowerBound, int upperBound, int t, int p, int A) {// check if there is range lower <=T<= upper that T = t1 or t2 ( mod p)
+*/
+bool chekNuberInRange(mpz_class lowerBound, mpz_class upperBound, mpz_class t, mpz_class p, mpz_class A) {// check if there is range lower <=T<= upper that T = t1 or t2 ( mod p)
 	if (A >= p) {
 		return true;
 	}
-	int l = lowerBound % p;
-	int u = upperBound % p;
+	mpz_class l = lowerBound % p;
+	mpz_class u = upperBound % p;
 	if (l >= u) {
 		if (t >= u || t <= l)
 			return true;
@@ -255,19 +258,19 @@ bool chekNuberInRange(int lowerBound, int upperBound, int t, int p, int A) {// c
 	return false;
 }
 
-int Step4(int n, int p, int A, int& res1, int& res2) {
-	int lowerBound = sqrt(n) + 1;
-	int upperBound = sqrt(n) + A;
+mpz_class Step4(mpz_class n, mpz_class p, mpz_class A, mpz_class& res1, mpz_class& res2) {
+	mpz_class lowerBound = sqrt(n) + 1;
+	mpz_class upperBound = sqrt(n) + A;
 
-	int residue = n;
-	int modBase = p;
-	int currentMod = p;
+	mpz_class residue = n;
+	mpz_class modBase = p;
+	mpz_class currentMod = p;
 
-	int root = SqrtMod(residue, currentMod);
-	int root2 = -(root - modBase);
+	mpz_class root = SqrtMod(residue, currentMod);
+	mpz_class root2 = -(root - modBase);
 	res1 = root;
 	res2 = root2;
-	int b = 1;
+	mpz_class b = 1;
 	//while (root < lowerBound && root2 < lowerBound) {
 	while (!chekNuberInRange(lowerBound, upperBound, root, currentMod,A) 
 		&& !chekNuberInRange(lowerBound, upperBound, root2, currentMod, A)) {
@@ -294,61 +297,15 @@ int Step4(int n, int p, int A, int& res1, int& res2) {
 	return b - 1;
 }
 
-int liftRootEvenModulo(int root, int a, int p) {
-	int i = ((root * root - a) / p) % 2;
+mpz_class liftRootEvenModulo(mpz_class root, mpz_class a, mpz_class p) {
+	mpz_class i = ((root * root - a) / p) % 2;
 	return root + i * (p / 2);
 }
 
-vector<double> gauss(vector< vector<double> > A) {
-	int n = A.size();
-
-	for (int i = 0; i<n; i++) {
-		// Search for maximum in this column
-		double maxEl = abs(A[i][i]);
-		int maxRow = i;
-		for (int k = i + 1; k<n; k++) {
-			if (abs(A[k][i]) > maxEl) {
-				maxEl = abs(A[k][i]);
-				maxRow = k;
-			}
-		}
-
-		// Swap maximum row with current row (column by column)
-		for (int k = i; k<n + 1; k++) {
-			double tmp = A[maxRow][k];
-			A[maxRow][k] = A[i][k];
-			A[i][k] = tmp;
-		}
-
-		// Make all rows below this one 0 in current column
-		for (int k = i + 1; k<n; k++) {
-			double c = -A[k][i] / A[i][i];
-			for (int j = i; j<n + 1; j++) {
-				if (i == j) {
-					A[k][j] = 0;
-				}
-				else {
-					A[k][j] += c * A[i][j];
-				}
-			}
-		}
-	}
-
-	// Solve equation Ax=b for an upper triangular matrix A
-	vector<double> x(n);
-	for (int i = n - 1; i >= 0; i--) {
-		x[i] = A[i][n] / A[i][i];
-		for (int k = i - 1; k >= 0; k--) {
-			A[k][n] -= A[k][i] * x[i];
-		}
-	}
-	return x;
-}
-
-void step7(int n, int A, vector<int>& listingT, vector<int>& listingTSqr, vector<vector<int>>& exponentMatrix) {
-	int sizeT = listingT.size();
+void step7(mpz_class n, mpz_class A, vector<mpz_class>& listingT, vector<mpz_class>& listingTSqr, vector<vector<mpz_class>>& exponentMatrix) {
+	mpz_class sizeT = listingT.size();
 	if (n % 8 != 1) {
-		for (int j = 0; j < sizeT; ++j) {
+		for (uint64_t j = 0; j < sizeT; ++j) {
 			if (listingT[j] % 2 == 1) {
 				exponentMatrix[0][j] = 1;
 				listingTSqr[j] /= 2;
@@ -356,23 +313,23 @@ void step7(int n, int A, vector<int>& listingT, vector<int>& listingTSqr, vector
 		}
 	}
 	else {
-		int lowerBound = sqrt(n) + 1;
-		int upperBound = sqrt(n) + A;
+		mpz_class lowerBound = sqrt(n) + 1;
+		mpz_class upperBound = sqrt(n) + A;
 
-		int residue = n;
-		int modBase = 2;
-		int currentMod = 2;
+		mpz_class residue = n;
+		mpz_class modBase = 2;
+		mpz_class currentMod = 2;
 
-		int b = 3;
+		mpz_class b = 3;
 
-		int root1 = 1;
-		int root2 = 3;
-		int root3 = 5;
-		int root4 = 7;
-		int t1 = 1;
-		int t2 = 3;
-		int t3 = 5;
-		int t4 = 7;
+		mpz_class root1 = 1;
+		mpz_class root2 = 3;
+		mpz_class root3 = 5;
+		mpz_class root4 = 7;
+		mpz_class t1 = 1;
+		mpz_class t2 = 3;
+		mpz_class t3 = 5;
+		mpz_class t4 = 7;
 		while (!chekNuberInRange(lowerBound, upperBound, root1, currentMod, A)
 			&& !chekNuberInRange(lowerBound, upperBound, root2, currentMod, A)
 			&& !chekNuberInRange(lowerBound, upperBound, root3, currentMod, A)
@@ -406,10 +363,10 @@ void step7(int n, int A, vector<int>& listingT, vector<int>& listingTSqr, vector
 
 		--b;
 
-		for (int j = 0; j < sizeT; ++j) {
-			for (int k = 0; k < b; ++k) {
-				int differ = abs(listingT[j] - t1);
-				if (differ % (int)pow(2, k + 1) == 0) {
+		for (uint64_t j = 0; j < sizeT; ++j) {
+			for (uint64_t k = 0; k < b; ++k) {
+				mpz_class differ = abs(listingT[j] - t1);
+				if (differ % (mpz_class)pow(2, k + 1) == 0) {
 					if (exponentMatrix[0][j] < k + 1) {
 						exponentMatrix[0][j] = k + 1;
 						//step 6
@@ -417,7 +374,7 @@ void step7(int n, int A, vector<int>& listingT, vector<int>& listingTSqr, vector
 					}
 				}
 				differ = abs(listingT[j] - t2);
-				if (differ % (int)pow(2, k + 1) == 0) {
+				if (differ % (mpz_class)pow(2, k + 1) == 0) {
 					if (exponentMatrix[0][j] < k + 1) {
 						exponentMatrix[0][j] = k + 1;
 						//step 6
@@ -425,7 +382,7 @@ void step7(int n, int A, vector<int>& listingT, vector<int>& listingTSqr, vector
 					}
 				}
 				differ = abs(listingT[j] - t3);
-				if (differ % (int)pow(2, k + 1) == 0) {
+				if (differ % (mpz_class)pow(2, k + 1) == 0) {
 					if (exponentMatrix[0][j] < k + 1) {
 						exponentMatrix[0][j] = k + 1;
 						//step 6
@@ -433,7 +390,7 @@ void step7(int n, int A, vector<int>& listingT, vector<int>& listingTSqr, vector
 					}
 				}
 				differ = abs(listingT[j] - t4);
-				if (differ % (int)pow(2, k + 1) == 0) {
+				if (differ % (mpz_class)pow(2, k + 1) == 0) {
 					if (exponentMatrix[0][j] < k + 1) {
 						exponentMatrix[0][j] = k + 1;
 						//step 6
@@ -444,42 +401,24 @@ void step7(int n, int A, vector<int>& listingT, vector<int>& listingTSqr, vector
 		}
 	}
 }
-int QS(int n) {//n is odd
-	//step 1
-	int P = exp(sqrt(log(n)*log(log(n))));
-	int A = P*10;
-	//int P = 50;
-	//int A = 500;
-	//step 2
-	vector<int> listingT(A);
-	vector<int> listingTSqr(A);
-	int sqrtN = sqrt(n);
-	for (int t = 0; t < A; ++t) {
-		listingT[t] = sqrtN + t + 1;
-		listingTSqr[t] = listingT[t]* listingT[t] - n;
-	}
-	Atkin atkin(P);
-	//step 3
-	vector<int> factorBase;
-	int size = atkin.primes.size();
-	factorBase.push_back(2);
-	for (int i = 1; i < size; ++i) {//for each odd prime
-		if (LegendreSymbol(n, atkin.primes[i]) == 1)
-			factorBase.push_back(atkin.primes[i]);
-	}
+
+void step45678(mpz_class n, mpz_class A, vector<mpz_class>& listingT, vector<mpz_class>& listingTSqr, vector<mpz_class>& factorBase, vector<vector<mpz_class>>& matrix) {
 	//step 4
-	size = factorBase.size();
-	int sizeT = listingT.size();
-	vector<vector<int>> exponentMatrix(size, vector<int>(sizeT,0));
-	for (int i = 1; i < size; ++i) {//for each odd prime
-		int t1, t2;
-		int p = factorBase[i];
-		int b = Step4(n, p, A, t1, t2);
+	uint64_t size = factorBase.size();
+	uint64_t sizeT = listingT.size();
+	vector<vector<mpz_class>> exponentMatrix(size, vector<mpz_class>(sizeT, 0));
+	for (uint64_t i = 1; i < size; ++i) {//for each odd prime
+		mpz_class t1, t2;
+		mpz_class p = factorBase[i];
+		mpz_class b = Step4(n, p, A, t1, t2);
 		//step 5
-		for (int j = 0; j < sizeT; ++j) {
-			for (int k = 0; k < b; ++k) {
-				int differ = abs(listingT[j] - t1);
-				if (differ % (int)pow(p,k+1) == 0) {
+		for (uint64_t j = 0; j < sizeT; ++j) {
+			for (mpz_class k = 0; k < b; ++k) {
+				mpz_class differ = abs(listingT[j] - t1);
+				mpz_class mod;
+				mpz_pow_ui(mod.get_mpz_t(), p.get_mpz_t(), mpz_class(k+1).get_ui());
+				//if (differ % (mpz_class)pow(p, k + 1) == 0) {
+				if (differ % mod == 0) {
 					if (exponentMatrix[i][j] < k + 1) {
 						exponentMatrix[i][j] = k + 1;
 						//step 6
@@ -487,7 +426,8 @@ int QS(int n) {//n is odd
 					}
 				}
 				differ = abs(listingT[j] - t2);
-				if (differ % (int)pow(p, k + 1) == 0) {
+				//if (differ % (mpz_class)pow(p, k + 1) == 0) {
+				if (differ % mod == 0) {
 					if (exponentMatrix[i][j] < k + 1) {
 						exponentMatrix[i][j] = k + 1;
 						//step 6
@@ -495,49 +435,51 @@ int QS(int n) {//n is odd
 					}
 				}
 			}
-		}		
+		}
 	}
 	//step 7
 	step7(n, A, listingT, listingTSqr, exponentMatrix);
 	//step 8
-	int matrixSize = 0;
-	for (int i = 0; i < sizeT; ++i) {
+	uint64_t matrixSize = 0;
+	for (uint64_t i = 0; i < sizeT; ++i) {
 		if (listingTSqr[i] == 1)
 			++matrixSize;
 	}
-	vector<vector<int>> matrix(size + 1, vector<int>(matrixSize, 0));
-	int pos = 0;
-	for (int i = 0; i < sizeT; ++i) {
+	matrix = vector<vector<mpz_class>>(size + 1, vector<mpz_class>(matrixSize, 0));
+	uint64_t pos = 0;
+	for (uint64_t i = 0; i < sizeT; ++i) {
 		if (listingTSqr[i] == 1) {
 			matrix[0][pos] = listingT[i];
-			for (int j = 0; j < size; ++j) {
-				matrix[j+1][pos] = exponentMatrix[j][i];
+			for (uint64_t j = 0; j < size; ++j) {
+				matrix[j + 1][pos] = exponentMatrix[j][i];
 			}
 			++pos;
 		}
 	}
+}
+
+void step9(vector<vector<mpz_class>>& matrix, vector<vector<mpz_class>>& factorizationMembers) {
 	//step 9
-	int cols = matrix.size();
-	int rows = matrix[0].size();
-	vector<vector<int>> gaussianEliminationMatrix(rows, vector<int>(cols, 0));
-	for (int i = 0; i < rows; ++i) {
+	uint64_t cols = matrix.size();
+	uint64_t rows = matrix[0].size();
+	vector<vector<mpz_class>> gaussianEliminationMatrix(rows, vector<mpz_class>(cols, 0));
+	for (uint64_t i = 0; i < rows; ++i) {
 		gaussianEliminationMatrix[i][0] = matrix[0][i];
-		for (int j = 1; j < cols; ++j) {
-			gaussianEliminationMatrix[i][j] = matrix[j][i]%2;
+		for (uint64_t j = 1; j < cols; ++j) {
+			gaussianEliminationMatrix[i][j] = matrix[j][i] % 2;
 		}
 	}
-	//Gaussian elimination
-
-	map<int,multiset<int>> linearCompositionMembers;
-	for (int i = 0; i < rows; ++i) {
-		linearCompositionMembers.insert({ gaussianEliminationMatrix[i][0], {gaussianEliminationMatrix[i][0]} });
+	//Gaussian elimination	
+	map<mpz_class, multiset<mpz_class>> linearCompositionMembers;
+	for (uint64_t i = 0; i < rows; ++i) {
+		linearCompositionMembers.insert({ gaussianEliminationMatrix[i][0],{ gaussianEliminationMatrix[i][0] } });
 	}
 
-	int curpos = 1;
-	for (int i = 0; (i < rows) && (curpos < cols); ++i,++curpos) {
-		int onePos = i;
-		while (onePos < rows && 
-			gaussianEliminationMatrix[onePos][curpos]!= 1)
+	uint64_t curpos = 1;
+	for (uint64_t i = 0; (i < rows) && (curpos < cols); ++i, ++curpos) {
+		uint64_t onePos = i;
+		while (onePos < rows &&
+			gaussianEliminationMatrix[onePos][curpos] != 1)
 			++onePos;
 		if (onePos == rows) {
 			if (i)
@@ -547,15 +489,15 @@ int QS(int n) {//n is odd
 		if (onePos != i) {
 			swap(gaussianEliminationMatrix[onePos], gaussianEliminationMatrix[i]);
 		}
-		
-		for (int j = 0; j < rows; ++j) {
+
+		for (uint64_t j = 0; j < rows; ++j) {
 			if (j == i
-				|| gaussianEliminationMatrix[j][curpos] ==0)
+				|| gaussianEliminationMatrix[j][curpos] == 0)
 				continue;
-			for (int k = 1; k < cols; ++k) {
+			for (uint64_t k = 1; k < cols; ++k) {
 				gaussianEliminationMatrix[j][k] = (gaussianEliminationMatrix[j][k] + gaussianEliminationMatrix[i][k]) % 2;
 			}
-			if(j>i)
+			if (j>i)
 				linearCompositionMembers[gaussianEliminationMatrix[j][0]].insert(
 					linearCompositionMembers[gaussianEliminationMatrix[i][0]].begin(),
 					linearCompositionMembers[gaussianEliminationMatrix[i][0]].end());
@@ -563,10 +505,10 @@ int QS(int n) {//n is odd
 		}
 	}
 	//get list of posible combinations
-	vector<multiset<int>> posibleFactorizationMembers;
+	vector<multiset<mpz_class>> posibleFactorizationMembers;
 
-	for (int i = 0; i < rows; ++i) {
-		int j = 1;
+	for (uint64_t i = 0; i < rows; ++i) {
+		uint64_t j = 1;
 		while (j < cols && gaussianEliminationMatrix[i][j] == 0)
 			++j;
 		if (j < cols)
@@ -574,55 +516,106 @@ int QS(int n) {//n is odd
 		posibleFactorizationMembers.push_back(linearCompositionMembers[gaussianEliminationMatrix[i][0]]);
 	}
 	//remove all even encounters
-	vector<vector<int>> factorizationMembers;
-	
-	size = posibleFactorizationMembers.size();
-	for (int i = 0; i < size; ++i) {
-		vector<int> factors;
+	mpz_class size = posibleFactorizationMembers.size();
+	for (uint64_t i = 0; i < size; ++i) {
+		vector<mpz_class> factors;
 		while (posibleFactorizationMembers[i].size() > 0) {
-			multiset<int>::iterator it = posibleFactorizationMembers[i].begin();
+			multiset<mpz_class>::iterator it = posibleFactorizationMembers[i].begin();
 			if (posibleFactorizationMembers[i].count(*it) % 2 == 1)
 				factors.push_back(*it);
 			posibleFactorizationMembers[i].erase(*it);
 		}
 		factorizationMembers.push_back(factors);
 	}
+}
+
+mpz_class QS(mpz_class n) {//n is odd
+	//step 1
+	string numberString = n.get_str();
+	mpfr_rnd_t rnd = mpfr_get_default_rounding_mode();
+	mpfr_t exp;
+	mpfr_init_set_str(exp, numberString.c_str(), 10, rnd);
+	mpfr_t logN;	
+	mpfr_t loglogN;
+	mpfr_init(logN);
+	mpfr_init(loglogN);
+	mpfr_log(logN, exp, rnd);
+	mpfr_log(loglogN, logN, rnd);
+	mpfr_mul(exp, logN, loglogN, rnd);
+	mpfr_sqrt(exp, exp, rnd);
+	mpfr_exp(exp, exp, rnd);
+	mpfr_rint_ceil(exp, exp, rnd);
+	mp_exp_t exponent;
+	char* str = mpfr_get_str(NULL, &exponent, 10, 0, exp, rnd);
+	numberString = string(str);
+	mpfr_free_str(str);
+	mpfr_clear(exp);
+	uint64_t P = stoi(numberString.substr(0,exponent));
+
+	uint64_t A = P*10;
+	//step 2
+	vector<mpz_class> listingT(A);
+	vector<mpz_class> listingTSqr(A);
+	mpz_class sqrtN = sqrt(n);
+	for (uint64_t t = 0; t < A; ++t) {
+		listingT[t] = sqrtN + t + 1;
+		listingTSqr[t] = listingT[t]* listingT[t] - n;
+	}
+	Atkin atkin(P);
+	//step 3
+	vector<mpz_class> factorBase;
+	mpz_class size = atkin.primes.size();
+	factorBase.push_back(2);
+	for (uint64_t i = 1; i < size; ++i) {//for each odd prime
+		if (LegendreSymbol(n, atkin.primes[i]) == 1)
+			factorBase.push_back(atkin.primes[i]);
+	}
+	//step 4 5 6 7 8
+	vector<vector<mpz_class>> matrix;
+	step45678(n, A, listingT, listingTSqr, factorBase, matrix);
+
+	//step 9
+	vector<vector<mpz_class>> factorizationMembers;
+	step9(matrix, factorizationMembers);
 	//test for factorization
 	size = factorizationMembers.size();
 	if (size == 0)
-		cout << "No factorization members" << endl;
-	for (int i = 0; i < size; ++i) {
-		vector<int> factors = factorizationMembers[i];
-		vector<int> powers(matrix.size()-1,0);
-		int j = 0;
-		pos = 0;
-		int left = 1;
+		std::cout << "No factorization members" << endl;
+	for (uint64_t i = 0; i < size; ++i) {
+		vector<mpz_class> factors = factorizationMembers[i];
+		vector<mpz_class> powers(matrix.size()-1,0);
+		uint64_t j = 0;
+		uint64_t pos = 0;
+		mpz_class left = 1;
 		while (pos < factors.size()) {
 			while (matrix[0][j] != factors[pos])
 				++j;
-			for (int k = 1; k < matrix.size(); ++k) {
+			for (uint64_t k = 1; k < matrix.size(); ++k) {
 				powers[k - 1] += matrix[k][j];
 			}
 			left = (left*factors[pos]) % n;
 			++pos;
 		}
-		int right = 1;
-		for (int k = 0; k < powers.size(); ++k) {
-			right = (right*((int)pow(factorBase[k], powers[k] / 2)) % n) % n;
+		mpz_class right = 1;
+		for (uint64_t k = 0; k < powers.size(); ++k) {
+			mpz_class multiplier;
+			mpz_pow_ui(multiplier.get_mpz_t(), factorBase[k].get_mpz_t(), mpz_class(powers[k] / 2).get_ui());
+			//right = (right*((mpz_class)pow(factorBase[k], powers[k] / 2)) % n) % n;
+			right = (right*multiplier) % n;
 		}
-		cout << "left " << left << " right " << right << endl;
+		std::cout << "left " << left << " right " << right << endl;
 		if (left == right) {			
-			cout << "trivial\n factors: ";
-			for (int k = 0; k < factorizationMembers[i].size(); ++k)
-				cout << factorizationMembers[i][k] << " ";
-			cout << endl<<endl;
+			std::cout << "trivial\n factors: ";
+			for (uint64_t k = 0; k < factorizationMembers[i].size(); ++k)
+				std::cout << factorizationMembers[i][k] << " ";
+			std::cout << endl<<endl;
 		}
 		else {
-			cout << "multiplier " << gcd(left - right, n) << endl;
-			cout << "factors: ";
-			for (int k = 0; k < factorizationMembers[i].size(); ++k)
-				cout << factorizationMembers[i][k] << " ";
-			cout << endl << endl;
+			std::cout << "multiplier " << gcd(abs(left - right), n) << endl;
+			std::cout << "factors: ";
+			for (uint64_t k = 0; k < factorizationMembers[i].size(); ++k)
+				std::cout << factorizationMembers[i][k] << " ";
+			std::cout << endl << endl;
 		}
 	}
 
@@ -630,33 +623,26 @@ int QS(int n) {//n is odd
 }
 
 
-int main(int argc, char* argv[])
+int main(mpz_class argc, char* argv[])
 {
-	int a = -1;
-	int b = a % 2;
-	//int r = 1021 % 729;
-	//int b = 1520 % 729;
-	//bool q = chekNuberInRange(1021, 1520, 589, 2187, 500);
-	//Atkin atkin(1000);
-	//QS(1042387);
-	QS(1042387);
-	cout << endl;
+	QS(1042385);
+	std::cout << endl;
 
 }
 
 void SQRTMODCHECK() {
 	Atkin atkin(1000);
 	for (int i = 2; i < 20; ++i) {
-		int prime = atkin.primes[i];
-		for (int j = 2; j < prime; ++j) {
+		mpz_class prime = atkin.primes[i];
+		for (mpz_class j = 2; j < prime; ++j) {
 			if (LegendreSymbol(j, prime) == 1) {
-				int res = SqrtMod(j, prime);
-				cout << prime << " " << j << " " << res << " ";
+				mpz_class res = SqrtMod(j, prime);
+				std::cout << prime << " " << j << " " << res << " ";
 				if ((res*res) % prime == j)
-					cout << "ok";
+					std::cout << "ok";
 				else
-					cout << "err";
-				cout << endl;
+					std::cout << "err";
+				std::cout << endl;
 			}
 		}
 	}

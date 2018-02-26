@@ -18,16 +18,50 @@
     <ClCompile Include="Source.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="BigInt.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="AtkinSieve.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="BigInt.h">
+    <ClInclude Include="mpirDLL64\config.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="mpirDLL64\gmp.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="mpirDLL64\gmp-impl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="mpirDLL64\gmp-mparam.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="mpirDLL64\gmpxx.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="mpirDLL64\longlong.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="mpirDLL64\mpir.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="mpirDLL64\mpirxx.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="mpfrDLL64\mpfr.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="mpirDLL64\mpir.dll" />
+    <None Include="mpirDLL64\mpir.exp" />
+    <None Include="mpirDLL64\mpir.pdb" />
+    <None Include="mpfrDLL64\mpfr.dll" />
+    <None Include="mpfrDLL64\mpfr.exp" />
+    <None Include="mpfrDLL64\mpfr.ilk" />
+    <None Include="mpfrDLL64\mpfr.pdb" />
+  </ItemGroup>
+  <ItemGroup>
+    <Library Include="mpirDLL64\mpir.lib" />
+    <Library Include="mpfrDLL64\mpfr.lib" />
   </ItemGroup>
 </Project>

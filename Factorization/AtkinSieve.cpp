@@ -2,21 +2,22 @@
 #include <vector>
 #include <set>
 #include <algorithm>
+#include <mpirxx.h>
 using namespace std;
 class Atkin {
 private:
 	vector<bool> is_prime;	
 public:
-	vector<int> primes = { 2,3,5 };
+	vector<uint64_t> primes = { 2,3,5 };
 
 	Atkin(uint64_t limit) {
-		int sqr_lim;
+		uint64_t sqr_lim;
 		is_prime.resize(limit + 1, false);
-		int x2, y2;
-		int i, j;
-		int n;
+		uint64_t x2, y2;
+		uint64_t i, j;
+		uint64_t n;
 		// Инициализация решета
-			sqr_lim = (int)sqrt((long double)limit);
+			sqr_lim = sqrt(limit);
 		for (i = 0; i <= limit; i++) is_prime[i] = false;
 		is_prime[2] = true;
 		is_prime[3] = true;
