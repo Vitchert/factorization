@@ -441,9 +441,10 @@ void step45678(mpz_class n, mpz_class A, vector<mpz_class>& listingT, vector<uin
 	cout << "step 8\n";
 	uint64_t matrixSize = 0;
 	for (uint64_t i = 0; i < sizeT; ++i) {
-		if (listingTSqr[i] == 1)
+		if (listingTSqr[i] == 1) {
 			++matrixSize;
-		listingTInMatrix.push_back(listingT[i]);
+			listingTInMatrix.push_back(listingT[i]);
+		}
 	}
 	matrix = vector<vector<uint64_t>>(matrixSize, vector<uint64_t>(factorBaseSize, 0));
 	pos = 0;
@@ -458,18 +459,18 @@ void step45678(mpz_class n, mpz_class A, vector<mpz_class>& listingT, vector<uin
 	listingT = listingTInMatrix;
 }
 
-mpz_class factorsCheck(uint64_t rowNumber, mpz_class& n, mpz_class t, vector<uint64_t>& factorBase, vector<uint8_t>& factorsVector,
-	vector<vector<uint64_t>>& matrix, vector<mpz_class>& listingTIdentity) {
+mpz_class factorsCheck(uint64_t rowNumber, mpz_class& n, vector<uint64_t>& factorBase, vector<uint8_t>& factorsVector,
+	vector<vector<uint64_t>>& matrix, vector<mpz_class>& listingT) {
 	
 	uint64_t j = 0;
 	uint64_t pos = 0;
-	mpz_class left = t;
+	mpz_class left = listingT[rowNumber];
 	uint64_t size = factorsVector.size();
 	vector<uint64_t> powers(size, 0);
 	for (uint64_t i = 0; i < size; ++i) {
 		if (factorsVector[i] == 1) {
 			std::transform(powers.begin(), powers.end(), matrix[i].begin(), powers.begin(), std::plus<uint64_t>());
-			left = left * listingTIdentity[i];
+			left = left * listingT[i];
 		}
 	}
 	std::transform(powers.begin(), powers.end(), matrix[rowNumber].begin(), powers.begin(), std::plus<uint64_t>());
@@ -503,7 +504,6 @@ mpz_class step9(mpz_class& n, vector<uint64_t>& factorBase, vector<vector<uint64
 		}
 	}
 	//Gaussian elimination	
-	vector<mpz_class> listingTIdentity(cols,0);
 	uint64_t curpos = 0;
 	uint64_t lastRow = 0;
 	for (uint64_t i = 0; (i < cols) && (curpos < rows); ++curpos) {//possible that first is all zeros?		
@@ -520,6 +520,7 @@ mpz_class step9(mpz_class& n, vector<uint64_t>& factorBase, vector<vector<uint64
 		}
 		cout << i << endl;
 		for (int i = 0; i < rows; ++i) {
+			cout << listingT[i] << " ";
 			for (int j = 0; j < cols; ++j) {
 				cout << (int)gaussianEliminationMatrix[j][i] << " ";
 			}
@@ -535,6 +536,7 @@ mpz_class step9(mpz_class& n, vector<uint64_t>& factorBase, vector<vector<uint64
 		}	
 		cout << "sustract" << endl;
 		for (int i = 0; i < rows; ++i) {
+			cout << listingT[i] << " ";
 			for (int j = 0; j < cols; ++j) {
 				cout << (int)gaussianEliminationMatrix[j][i] << " ";
 			}
@@ -547,14 +549,15 @@ mpz_class step9(mpz_class& n, vector<uint64_t>& factorBase, vector<vector<uint64
 	for (uint64_t i = lastRow+2; i < rows; ++i) {		
 		for (int j = 0; j < cols; ++j)
 			factorIndex[j] = gaussianEliminationMatrix[j][i];
-		mpz_class result = factorsCheck(i, n, listingT[i], factorBase, factorIndex, matrix, listingTIdentity);
+		mpz_class result = factorsCheck(i, n, factorBase, factorIndex, matrix, listingT);
 		if (result>0)
 			return result;
 	}
 	return 0;
 }
 
-mpz_class QS(mpz_class n, Atkin& atkin) {//n is odd
+mpz_class QS(mpz_class n, Atkin& atkin) {
+	//n is odd
 	//step 1
 	string numberString = n.get_str();
 	mpfr_rnd_t rnd = mpfr_get_default_rounding_mode();
