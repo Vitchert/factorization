@@ -52,16 +52,13 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="mpirDLL64\mpir.dll" />
-    <None Include="mpirDLL64\mpir.exp" />
     <None Include="mpirDLL64\mpir.pdb" />
-    <None Include="mpfrDLL64\mpfr.dll" />
-    <None Include="mpfrDLL64\mpfr.exp" />
-    <None Include="mpfrDLL64\mpfr.ilk" />
     <None Include="mpfrDLL64\mpfr.pdb" />
+    <None Include="mpirDLL64\mpirxx.pdb" />
   </ItemGroup>
   <ItemGroup>
     <Library Include="mpirDLL64\mpir.lib" />
     <Library Include="mpfrDLL64\mpfr.lib" />
+    <Library Include="mpirDLL64\mpirxx.lib" />
   </ItemGroup>
 </Project>

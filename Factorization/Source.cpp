@@ -10,6 +10,8 @@
 #include <mpfr.h>
 #include <numeric>
 #include <thread>
+#pragma comment (lib, "mpir.lib")
+#pragma comment (lib, "mpirxx.lib")
 using namespace std;
 
 int mil_rab(mpz_class n) // 1-prostoe
@@ -283,127 +285,81 @@ class GaussianEliminator {
 	vector<uint64_t> primes;
 	uint64_t lastBasisPos = 0;
 	uint64_t primeBaseSize;
-	vector<uint64_t> swapPositionsVector;
+	vector<uint64_t> fillOrder;
+	set<uint64_t> remainingPositions;
 	vector<vector<uint64_t>> operationsListVector;
 	vector<vector<uint64_t>> exponentBaseMatrix;
 public:
 	GaussianEliminator(vector<uint64_t>& factorBase) {
 		primeBaseSize = factorBase.size();
-		listingT = vector<mpz_class>(primeBaseSize, 0);
+		listingT = vector<mpz_class>(primeBaseSize);
 		primes = factorBase;
-		exponentBaseMatrix = vector<vector<uint64_t>>();
-		swapPositionsVector = vector<uint64_t>(primeBaseSize);
-		std::iota(swapPositionsVector.begin(), swapPositionsVector.end(), 0);
+		fillOrder = vector<uint64_t>(primeBaseSize);
+		exponentBaseMatrix = vector<vector<uint64_t>>(primeBaseSize);
+		remainingPositions = set<uint64_t>();
 		operationsListVector = vector<vector<uint64_t>>(primeBaseSize, vector<uint64_t>());
+		for (uint64_t i = 0; i < primeBaseSize; ++i)
+			remainingPositions.insert(i);
 	}
 
 	mpz_class addVector(mpz_class& n, mpz_class& T, vector<uint64_t>& exponentVector) {		
-
-		cout << "-------swap--------\n";
-		for (int i = 0; i < primeBaseSize; ++i) {
-			cout << swapPositionsVector[i] << " ";
-		}
-		cout << endl;
-		cout << "-------primes unorder--------\n";
-		for (int i = 0; i < primeBaseSize; ++i) {
-			cout << primes[i] << " ";
-		}
-		cout << endl;
-		cout << "-------primes order--------\n";
-		for (int i = 0; i < primeBaseSize; ++i) {
-			cout << primes[swapPositionsVector[i]] << " ";
-		}
-		cout << endl;
-		cout << "-------exp--------\n";
-		for (int i = 0; i < primeBaseSize; ++i) {
-			cout << exponentVector[i] << "  ";
-		}
-		cout << endl;
-		cout << "---------------\n";
-		for (int i = 0; i < primeBaseSize; ++i) {
-			cout << primes[i] << "     ";
-			for (int o = 0; o < operationsListVector[i].size(); ++o) {
-				cout << operationsListVector[i][o] << " ";
-
-			}
-			cout << endl;
-		}
-		cout << "---------------\n";
+		
 		//eliminate vector
 		vector<uint64_t> eliminatedVector(primeBaseSize);
-		for (uint64_t i = 0; i < primeBaseSize; ++i) {
-			eliminatedVector[i] = exponentVector[swapPositionsVector[i]] % 2;
-			vector<uint64_t>& operations = operationsListVector[swapPositionsVector[i]];
+		for (uint64_t i = 0; i < primeBaseSize; ++i)
+			eliminatedVector[i] = exponentVector[i]% 2;
+
+		for (uint64_t i = 0; i < lastBasisPos; ++i) {
+			uint64_t pos = fillOrder[i];
+			if (eliminatedVector[pos] == 0)
+				continue;
+			vector<uint64_t>& operations = operationsListVector[pos];
 			uint64_t operationsCount = operations.size();
 			for (uint64_t j = 0; j < operationsCount; ++j) {
-				eliminatedVector[i] ^= exponentVector[swapPositionsVector[operations[j]]] % 2;
+				eliminatedVector[operations[j]] ^= 1;
 			}
 		}
-		
-		for (int i = 0; i < primeBaseSize; ++i) {
-			cout << eliminatedVector[i] << " ";
-		}
-		cout << endl;
-		cout << "---------------\n";
-
+	
 		//add to basis if possible
-		for (uint64_t i = lastBasisPos; i < primeBaseSize; ++i) {
-			if (eliminatedVector[i] != 1) {
+		for (auto it = remainingPositions.begin(); it != remainingPositions.end(); ++it) {
+			if (eliminatedVector[*it] != 1) {
 				continue;
 			}
-
-
-			
-			
-			
-
-
-
-
 			//found new basis vector
-			exponentBaseMatrix.push_back(exponentVector);
-			operationsListVector[i].swap(operationsListVector[lastBasisPos]);
-			swap(swapPositionsVector[i], swapPositionsVector[lastBasisPos]);
-			listingT[lastBasisPos] = T;
-			swap(primes[i], primes[lastBasisPos]);
-
-
-			
-
-
-
-
+			exponentBaseMatrix[*it] =exponentVector;
+			listingT[*it] = T;
 			for (uint64_t j = 0; j < primeBaseSize; ++j) {
-				if (j!= i && eliminatedVector[j] == 1) {
+				if (j!= *it && eliminatedVector[j] == 1) {
 					eliminatedVector[j] = 0;
-					operationsListVector[j].push_back(lastBasisPos);
+					operationsListVector[*it].push_back(j);
 				}
 			}
-			++lastBasisPos;
-			
+			fillOrder[lastBasisPos] = *it;
+			remainingPositions.erase(it);
+			++lastBasisPos;			
 			return 0;
 		}
 
 		//calculate factorization
 		mpz_class left = T;
-		cout << "factors "<<T<<" ";
+		//cout << "factors "<<T<<" ";
 		for (uint64_t i = 0; i < primeBaseSize; ++i) {
 			if (eliminatedVector[i] != 1) {
 				continue;
 			}
-			cout << listingT[i]<<" ";
+			//cout << listingT[i]<<" ";
 			left = (left * listingT[i]) % n;
 			for (uint64_t k = 0; k < primeBaseSize; ++k) {
 				exponentVector[k] += exponentBaseMatrix[i][k];
 			}
 		}
-		cout << endl;
+		//cout << endl;
 		mpz_class right = 1;
 		mpz_class multiplier;
 		for (uint64_t k = 0; k < primeBaseSize; ++k) {
 			mpz_pow_ui(multiplier.get_mpz_t(),
 				mpz_class(primes[k]).get_mpz_t(),
-				mpz_class(exponentVector[swapPositionsVector[k]] / 2).get_ui());
+				mpz_class(exponentVector[k] / 2).get_ui());
 			right = (right*multiplier) % n;
 		}
 		if (left != right) {
@@ -517,11 +473,49 @@ void step7(mpz_class n, mpz_class& A, mpz_class& T, uint64_t& TSqr, vector<uint6
 	}
 }
 
+void step456(mpz_class& T, uint64_t& TSqr, vector<uint64_t>& exponentVector, vector<uint64_t>& PrimeBPowers,
+	vector<std::pair<mpz_class, mpz_class>>& SqrtmoduloSolutions, vector<uint64_t>& factorBase, uint64_t& factorBaseSize) {
+	mpz_class mod;
+	mpz_class differ;
+	uint64_t b;
+	mpz_class t1;
+	mpz_class t2;
+	uint64_t p;
+	for (uint64_t i = 1; i < factorBaseSize; ++i) {
+		b = PrimeBPowers[i];
+		t1 = SqrtmoduloSolutions[i].first;
+		t2 = SqrtmoduloSolutions[i].second;
+		p = factorBase[i];
+
+		for (uint64_t k = 0; k < b; ++k) {
+			differ = abs(T - t1);
+			mpz_pow_ui(mod.get_mpz_t(), mpz_class(p).get_mpz_t(), k + 1);
+			//if (differ % (mpz_class)pow(p, k + 1) == 0) {
+			if (differ % mod == 0) {
+				if (exponentVector[i] < k + 1) {
+					exponentVector[i] = k + 1;
+					//step 6
+					TSqr /= p;
+				}
+			}
+			differ = abs(T - t2);
+			//if (differ % (mpz_class)pow(p, k + 1) == 0) {
+			if (differ % mod == 0) {
+				if (exponentVector[i] < k + 1) {
+					exponentVector[i] = k + 1;
+					//step 6
+					TSqr /= p;
+				}
+			}
+		}
+	}
+}
+
 mpz_class step45678(mpz_class n, mpz_class A, vector<uint64_t>& factorBase) {
 	GaussianEliminator Gauss(factorBase);
 	cout << "step 4\n";
 	uint64_t factorBaseSize = factorBase.size();
-	vector<uint64_t> exponentVector(factorBaseSize, 0);
+	
 	//step 3
 	vector<uint64_t> PrimeBPowers(factorBaseSize);
 	vector<std::pair<mpz_class, mpz_class>> SqrtmoduloSolutions(factorBaseSize);
@@ -533,54 +527,33 @@ mpz_class step45678(mpz_class n, mpz_class A, vector<uint64_t>& factorBase) {
 	}
 	//step 2
 	cout << "step 2\n";
+	vector<uint64_t> exponentVector(factorBaseSize, 0);
 	mpz_class T;
 	uint64_t TSqr;
 	mpz_class sqrtN = sqrt(n);
+	uint64_t printCount = A.get_ui() / 1000;
+	float curprint = 0.1;
 	for (uint64_t j = 0; j < A; ++j) {
 		std::fill(exponentVector.begin(), exponentVector.end(), 0);
 		T = sqrtN + j + 1;
 		TSqr = mpz_class(T * T - n).get_ui();
-
 		//step 4
-		mpz_class mod;
-		mpz_class differ;
-		for (uint64_t i = 1; i < factorBaseSize; ++i) {
-			uint64_t b = PrimeBPowers[i];
-			mpz_class t1 = SqrtmoduloSolutions[i].first;
-			mpz_class t2 = SqrtmoduloSolutions[i].second;
-			uint64_t p = factorBase[i];
-
-			for (uint64_t k = 0; k < b; ++k) {
-				differ = abs(T - t1);
-				mpz_pow_ui(mod.get_mpz_t(), mpz_class(p).get_mpz_t(), k + 1);
-				//if (differ % (mpz_class)pow(p, k + 1) == 0) {
-				if (differ % mod == 0) {
-					if (exponentVector[i] < k + 1) {
-						exponentVector[i] = k + 1;
-						//step 6
-						TSqr /= p;
-					}
-				}
-				differ = abs(T - t2);
-				//if (differ % (mpz_class)pow(p, k + 1) == 0) {
-				if (differ % mod == 0) {
-					if (exponentVector[i] < k + 1) {
-						exponentVector[i] = k + 1;
-						//step 6
-						TSqr /= p;
-					}
-				}
-			}
-		}
+		step456(T, TSqr, exponentVector, PrimeBPowers,
+			SqrtmoduloSolutions, factorBase, factorBaseSize);	
 		//step 7
 		step7(n, A, T, TSqr, exponentVector);
 		//step 8
 		if (TSqr != 1)
 			continue;
-		cout << T << endl;
 		mpz_class factor = Gauss.addVector(n, T, exponentVector);
-		if (factor > 0)
+		if (factor > 0) {
+			//cout << printCount << " " << j << endl;
 			return factor;
+		}
+		if ((j << 50 >> 50)&printCount) {
+			printf("\r%.1f%%", curprint);
+			curprint+=0.1;
+		}
 	}
 	return 0;
 }
@@ -706,10 +679,9 @@ mpz_class QS(mpz_class n, Atkin& atkin) {
 	numberString = string(str);
 	mpfr_free_str(str);
 	mpfr_clear(exp);
-	uint64_t P = stoi(numberString.substr(0,exponent));
+	uint64_t P = std::stoull(numberString.substr(0,exponent));
+	P /= 100000;
 	uint64_t A = P*10; 
-	P= 50;
-	A = 500;
 	cout << "A = " << A << endl << "P = " << P << endl;
 	
 	if (atkin.primes.back() < P)
@@ -752,7 +724,7 @@ uint64_t dumbcheck(mpz_class num, Atkin& atkin) {
 int main(int argc, char* argv[])
 {
 	Atkin atkin(1000);
-	string n = "1042387";
+	string n = "523022617466601111760007224100074291200000001";
 	mpz_class num;
 	mpz_set_str(num.get_mpz_t(), n.c_str(), 10);
 	vector<mpz_class> factors;
