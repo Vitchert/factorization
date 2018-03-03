@@ -28,7 +28,8 @@ int mil_rab(mpz_class n) // 1-prostoe
 
 	t = n - 1;
 
-	while (t % 2 == 0) {  //представление n-1 = (2^s)t, где t нечетно
+	//while (t % 2 == 0) {  //представление n-1 = (2^s)t, где t нечетно
+	while (mpz_even_p(t.get_mpz_t())) {
 		t = t / 2;
 		s++;
 	}
@@ -104,7 +105,7 @@ int Miller(mpz_class n)
 	}
 	return 1;
 }
-
+/*
 mpz_class LegendreSymbol(mpz_class a, mpz_class p) {
 	if (a >= p)
 		a %= p;
@@ -112,17 +113,19 @@ mpz_class LegendreSymbol(mpz_class a, mpz_class p) {
 	mpz_powm(res.get_mpz_t(), a.get_mpz_t(), mpz_class((p-1)/2).get_mpz_t(), p.get_mpz_t());
 	return res > 1 ? -1 : res;
 }
-
+*/
 mpz_class SqrtMod(mpz_class a, mpz_class p) {
 	if (a >= p)
 		a %= p;
 	mpz_class n = 1;
-	while (LegendreSymbol(n, p) >= 0) {
+	//while (LegendreSymbol(n, p) >= 0) {
+	while (mpz_legendre(n.get_mpz_t(), p.get_mpz_t()) >= 0){
 		++n;
 	}
 	mpz_class alpha = 0;
 	mpz_class s = p - 1;
-	while (s % 2 == 0) {
+	//while (s % 2 == 0) {
+	while (mpz_even_p(s.get_mpz_t())) {
 		++alpha;
 		s /= 2;
 	}
@@ -175,7 +178,7 @@ mpz_class SqrtMod(mpz_class a, mpz_class p) {
 	//return (powmod(b, j, p) * r) % p;
 	return (result * r) % p;
 }
-
+/*
 mpz_class gcd(mpz_class a, mpz_class b) {
 	while (b != 0) {
 		a %= b;
@@ -200,16 +203,21 @@ mpz_class ReverseMod(mpz_class a, mpz_class m) {//обратное по модулю число
 	mpz_class x = 0, y;
 	mpz_class g = gcdex(a, m, x, y);
 	if (g != 1)
-		std::cout << "ReverseMod no solution";
+		std::cout << "ReverseMod no solution\n";
 	else {
 		x = (x % m + m) % m;
 	}
 	return x;
 }
-
+*/
 mpz_class sqrtModPowerLiftingPlusOne(mpz_class root, mpz_class quadResidue, mpz_class mod, uint64_t modBase) {
 	mpz_class newmod = mod*modBase;
-	mpz_class yk = ReverseMod(2 * root, mod)% newmod;	
+	//mpz_class yk = ReverseMod(2 * root, mod)% newmod;	
+	mpz_class yk;
+	mpz_class r = 2 * root;
+	if (mpz_invert(yk.get_mpz_t(), r.get_mpz_t(), mod.get_mpz_t()) == 0)
+		std::cout << "ReverseMod no solution\n";
+	yk %= newmod;
 	quadResidue %= newmod;
 	root = root - (((root*root) % newmod - quadResidue)*yk) % newmod;
 
@@ -276,8 +284,13 @@ uint64_t Step4(mpz_class n, uint64_t p, mpz_class A, mpz_class& res1, mpz_class&
 }
 
 mpz_class liftRootEvenModulo(mpz_class root, mpz_class a, mpz_class p) {
-	mpz_class i = ((root * root - a) / p) % 2;
-	return root + i * (p / 2);
+	//mpz_class i = ((root * root - a) / p) % 2;
+	//return root + i * (p / 2);
+	mpz_class buf((root * root - a) / p);
+	if (mpz_odd_p(buf.get_mpz_t()))
+		return root + p / 2;
+	else
+		return root;	
 }
 
 class GaussianEliminator {
@@ -363,7 +376,9 @@ public:
 			right = (right*multiplier) % n;
 		}
 		if (left != right) {
-			multiplier = gcd(abs(left - right), n);
+			//multiplier = gcd(abs(left - right), n);
+			left -= right;
+			mpz_gcd(multiplier.get_mpz_t(), left.get_mpz_t(), n.get_mpz_t());
 			if (abs(multiplier) == 1 || n % multiplier != 0)
 				return 0;
 			std::cout << "multiplier " << multiplier << endl;
@@ -376,7 +391,8 @@ public:
 
 void step7(mpz_class n, mpz_class& A, mpz_class& T, uint64_t& TSqr, vector<uint64_t>& exponentMatrixRow) {
 	if (n % 8 != 1) {
-		if (T % 2 == 1) {
+		//if (T % 2 == 1) {
+		if(mpz_odd_p(T.get_mpz_t())){
 			exponentMatrixRow[0] = 1;
 			TSqr /= 2;
 		}
@@ -531,9 +547,21 @@ mpz_class step45678(mpz_class n, mpz_class A, vector<uint64_t>& factorBase) {
 	mpz_class T;
 	uint64_t TSqr;
 	mpz_class sqrtN = sqrt(n);
-	uint64_t printCount = A.get_ui() / 1000;
-	float curprint = 0.1;
+	uint64_t printCount = A.get_ui();
+	int number = 0;
+	float step=1;
+	while (printCount > 10000) {
+		printCount /= 10;
+		++number;
+		step /= 10;
+	}
+	float curprint = step;
+	cout << "Pc " << printCount << endl;
 	for (uint64_t j = 0; j < A; ++j) {
+		if (j% printCount == 0) {
+			printf("\r%.*f%%", number,curprint);
+			curprint += step;
+		}
 		std::fill(exponentVector.begin(), exponentVector.end(), 0);
 		T = sqrtN + j + 1;
 		TSqr = mpz_class(T * T - n).get_ui();
@@ -549,122 +577,17 @@ mpz_class step45678(mpz_class n, mpz_class A, vector<uint64_t>& factorBase) {
 		if (factor > 0) {
 			//cout << printCount << " " << j << endl;
 			return factor;
-		}
-		if ((j << 50 >> 50)&printCount) {
-			printf("\r%.1f%%", curprint);
-			curprint+=0.1;
-		}
-	}
-	return 0;
-}
-
-mpz_class factorsCheck(uint64_t rowNumber, mpz_class& n, vector<uint64_t>& factorBase, vector<uint8_t>& factorsVector,
-	vector<vector<uint64_t>>& matrix, vector<mpz_class>& listingT) {
-	
-	uint64_t j = 0;
-	uint64_t pos = 0;
-	mpz_class left = listingT[rowNumber];
-	uint64_t size = factorsVector.size();
-	vector<uint64_t> powers(size, 0);
-	for (uint64_t i = 0; i < size; ++i) {
-		if (factorsVector[i] == 1) {
-			std::transform(powers.begin(), powers.end(), matrix[i].begin(), powers.begin(), std::plus<uint64_t>());
-			left = left * listingT[i];
-		}
-	}
-	std::transform(powers.begin(), powers.end(), matrix[rowNumber].begin(), powers.begin(), std::plus<uint64_t>());
-
-	mpz_class right = 1;
-	for (uint64_t k = 0; k < powers.size(); ++k) {
-		mpz_class multiplier;
-		mpz_pow_ui(multiplier.get_mpz_t(), mpz_class(factorBase[k]).get_mpz_t(), mpz_class(powers[k] / 2).get_ui());
-		//right = (right*((mpz_class)pow(factorBase[k], powers[k] / 2)) % n) % n;
-		right = (right*multiplier) % n;
-	}
-	if (left != right) {
-		mpz_class multiplier = gcd(abs(left - right), n);
-		if (abs(multiplier) == 1 || n % multiplier != 0)
-			return 0;
-		std::cout << "multiplier " << multiplier << endl;
-		std::cout << endl << endl;
-		return multiplier;
-	}
-	return 0;
-}
-
-
-
-mpz_class step9(mpz_class& n, vector<uint64_t>& factorBase, vector<vector<uint64_t>>& matrix, vector<mpz_class>& listingT) {
-	//step 9
-	uint64_t cols = matrix[0].size();
-	uint64_t rows = matrix.size();
-	vector<vector<uint8_t>> gaussianEliminationMatrix(cols, vector<uint8_t>(rows, 0));
-	for (uint64_t i = 0; i < rows; ++i) {
-		for (uint64_t j = 0; j < cols; ++j) {
-			gaussianEliminationMatrix[j][i] = matrix[i][j] % 2;
-		}
-	}
-	//Gaussian elimination	
-	uint64_t curpos = 0;
-	uint64_t lastRow = 0;
-	for (uint64_t i = 0; (i < cols) && (curpos < rows); ++curpos) {//possible that first is all zeros?		
-		uint64_t onePos = i;
-		lastRow = i;
-		while (onePos < cols &&
-			gaussianEliminationMatrix[onePos][curpos] != 1)
-			++onePos;
-		if (onePos == cols) {
-			continue;
 		}		
-		if (onePos != i) {
-			gaussianEliminationMatrix[onePos].swap(gaussianEliminationMatrix[i]);			
-		}
-		cout << i << endl;
-		for (int i = 0; i < rows; ++i) {
-			cout << listingT[i] << " ";
-			for (int j = 0; j < cols; ++j) {
-				cout << (int)gaussianEliminationMatrix[j][i] << " ";
-			}
-			cout << endl;
-		}
-		for (uint64_t j = 0; j < cols; ++j) {
-			if (j == i
-				|| gaussianEliminationMatrix[j][curpos] == 0)
-				continue;
-			for (uint64_t k = 0; k < rows; ++k) {
-				gaussianEliminationMatrix[j][k] ^= gaussianEliminationMatrix[i][k];
-			}
-		}	
-		cout << "sustract" << endl;
-		for (int i = 0; i < rows; ++i) {
-			cout << listingT[i] << " ";
-			for (int j = 0; j < cols; ++j) {
-				cout << (int)gaussianEliminationMatrix[j][i] << " ";
-			}
-			cout << endl;
-		}
-		++i;
-	}
-	vector<uint8_t> factorIndex(cols);
-	//get list of combinations	
-	for (uint64_t i = lastRow+2; i < rows; ++i) {		
-		for (int j = 0; j < cols; ++j)
-			factorIndex[j] = gaussianEliminationMatrix[j][i];
-		mpz_class result = factorsCheck(i, n, factorBase, factorIndex, matrix, listingT);
-		if (result>0)
-			return result;
 	}
 	return 0;
 }
 
-mpz_class QS(mpz_class n, Atkin& atkin) {
-	//n is odd
-	//step 1
+void getBound(mpz_class& n, uint64_t& P, uint64_t& A) {
 	string numberString = n.get_str();
 	mpfr_rnd_t rnd = mpfr_get_default_rounding_mode();
 	mpfr_t exp;
 	mpfr_init_set_str(exp, numberString.c_str(), 10, rnd);
-	mpfr_t logN;	
+	mpfr_t logN;
 	mpfr_t loglogN;
 	mpfr_init(logN);
 	mpfr_init(loglogN);
@@ -679,9 +602,16 @@ mpz_class QS(mpz_class n, Atkin& atkin) {
 	numberString = string(str);
 	mpfr_free_str(str);
 	mpfr_clear(exp);
-	uint64_t P = std::stoull(numberString.substr(0,exponent));
-	P /= 100000;
-	uint64_t A = P*10; 
+	P = std::stoull(numberString.substr(0, exponent)) / 10;
+	A = P*10;
+}
+
+mpz_class QS(mpz_class n, Atkin& atkin) {
+	//n is odd
+	//step 1
+	uint64_t P;
+	uint64_t A;
+	getBound(n, P, A);	
 	cout << "A = " << A << endl << "P = " << P << endl;
 	
 	if (atkin.primes.back() < P)
@@ -694,7 +624,8 @@ mpz_class QS(mpz_class n, Atkin& atkin) {
 	for (uint64_t i = 1; i < size; ++i) {//for each odd prime
 		if (atkin.primes[i] > P)
 			break;
-		if (LegendreSymbol(n, atkin.primes[i]) == 1)
+		//if (LegendreSymbol(n, atkin.primes[i]) == 1)
+		if (mpz_legendre(n.get_mpz_t(), mpz_class(atkin.primes[i]).get_mpz_t()) == 1)
 			factorBase.push_back(atkin.primes[i]);
 	}
 	//step 4 5 6 7 8 0
@@ -714,8 +645,8 @@ int primecheck(mpz_class n) {//0-composite, 1-prime
 }
 
 uint64_t dumbcheck(mpz_class num, Atkin& atkin) {
-	int size = atkin.primes.size();
-	for (int i=0;i<size;++i)
+	uint64_t size = atkin.primes.size();
+	for (uint64_t i=0;i<size;++i)
 		if (num % atkin.primes[i] == 0)
 			return atkin.primes[i];
 	return 0;
@@ -724,7 +655,7 @@ uint64_t dumbcheck(mpz_class num, Atkin& atkin) {
 int main(int argc, char* argv[])
 {
 	Atkin atkin(1000);
-	string n = "523022617466601111760007224100074291200000001";
+	string n = "584100001812560001217223";
 	mpz_class num;
 	mpz_set_str(num.get_mpz_t(), n.c_str(), 10);
 	vector<mpz_class> factors;
